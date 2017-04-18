@@ -16,7 +16,7 @@ choice_answer_mapping = load_knowledge('challenge_spr').choice_answer_mapping
 def hear(robot, time_out):
     spec = '<question>'
     choices = {'question': [k for k,v in choice_answer_mapping.iteritems()]}
-    
+
     return robot.ears.recognize(spec=spec, choices=choices, time_out=time_out)
 
 
@@ -24,7 +24,7 @@ def answer(robot, res, crowd_data):
     if res:
         if "question" in res.choices:
             answer = choice_answer_mapping[res.choices['question']]
-            
+
             # override for crowd answers
             if answer == 'Crowd_males':
                 answer = 'In the crowd are %d males' % crowd_data['males']
@@ -44,14 +44,14 @@ def answer(robot, res, crowd_data):
         else:
             robot.speech.speak("Sorry, I do not understand your question")
     else:
-        robot.speech.speak("My ears are not working properly.")    
+        robot.speech.speak("My ears are not working properly.")
 
     return 'not_answered'
 
 
 class HearQuestion(smach.State):
     def __init__(self, robot, time_out=rospy.Duration(15)):
-        smach.State.__init__(self, outcomes=["answered"], input_keys=['crowd_data'])
+        smach.State.__init__(self, outcomes=["answered", 'not_answered'], input_keys=['crowd_data'])
         self.robot = robot
         self.time_out = time_out
 
@@ -83,12 +83,14 @@ class TestRiddleGame(smach.StateMachine):
 
             smach.StateMachine.add("HEAR_QUESTION",
                                    HearQuestion(robot),
-                                   transitions={'answered': 'HEAR_QUESTION_2'},
+                                   transitions={'answered': 'HEAR_QUESTION_2',
+                                                'not_answered': 'HEAR_QUESTION_2'},
                                    remapping={'crowd_data':'crowd_data'})
 
             smach.StateMachine.add("HEAR_QUESTION_2",
                                    HearQuestion(robot),
-                                   transitions={'answered': 'Done'})
+                                   transitions={'answered': 'Done',
+                                                'not_answered': 'Done'})
 
 if __name__ == "__main__":
     rospy.init_node('speech_person_recognition_exec')
